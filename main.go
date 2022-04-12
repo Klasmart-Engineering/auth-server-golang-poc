@@ -20,8 +20,8 @@ func main() {
 	mux.HandleFunc("/.well-known/express/server-health", api.ServerHealth)
 	mux.HandleFunc("/transfer", api.TransferHandler)
 	mux.HandleFunc("/switch", api.SwitchHandler)
-	//mux.HandleFunc("/refresh", Refresh)
-	//mux.HandleFunc("/signout", SignOut)
+	//mux.HandleFunc("/refresh", api.RefreshHandler)
+	//mux.HandleFunc("/signout", api.SignOutHandler)
 	handler := c.Handler(mux)
 	err := http.ListenAndServe(":8080", handler)
 	if err != nil {
