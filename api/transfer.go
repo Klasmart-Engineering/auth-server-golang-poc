@@ -24,7 +24,7 @@ type RefreshClaims struct {
 }
 
 type RefreshClaimToken struct {
-	UserID *string `json:"id"`
+	UserID *string `json:"id,omitempty"`
 	Email string `json:"email"`
 }
 
@@ -81,7 +81,7 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 		accessCookie := http.Cookie{
 			Name: "access",
 			Value: accessTokenString,
-			Domain: "loadtest.kidsloop.live", //TODO: Use env var etc.
+			Domain: "localhost", //TODO: Use env var etc.
 			Path: "/",
 			MaxAge: 900,
 			Expires: time.Now().Add(15 * time.Minute), //TODO: Confirm the timeframe
@@ -109,9 +109,9 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		refreshCookie := http.Cookie{
-			Name: "refesh",
+			Name: "refresh",
 			Value: refreshTokenString,
-			Domain: "loadtest.kidsloop.live", //TODO: Use env var etc.
+			Domain: "localhost", //TODO: Use env var etc.
 			Path: "/refresh",
 			MaxAge: 1206000,
 			Expires: time.Now().Add(1206000), //TODO: Confirm the timeframe

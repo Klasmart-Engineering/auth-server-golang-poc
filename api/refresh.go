@@ -1,70 +1,73 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"kidsloop-auth-server-2/utils"
+	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
-type switchPayload struct {
-	UserID string `json:"user_id"`
-}
-
-type SwitchClaims struct {
-	UserID string `json:"id"`
-	Email string `json:"email"`
-	jwt.RegisteredClaims
-}
-
-func SwitchHandler(w http.ResponseWriter, r *http.Request) {
+func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	jwtDecodeSecret, err := jwt.ParseRSAPublicKeyFromPEM([]byte(utils.PublicKey))
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
 	jwtEncodeSecret, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
-
-	db := utils.DBConnector{
-		Connector: utils.DummyDBConnector{},
-	}
-
-	// TODO: Move everything under here to a separate method so it can be tested
-	var payload switchPayload
-	d := json.NewDecoder(r.Body)
-	d.Decode(&payload)
-	db.Connector.ConnectToDB()
-	if !db.Connector.UserExists(payload.UserID) {
-		utils.ServerErrorResponse(w, errors.New("user ID is not valid"))
-		return
-	}
 
 	// Validate previous access token
-	prevAccessTokenCookie, err := r.Cookie("access")
+	prevAccessTokenCookie, _ := r.Cookie("access")
+	if prevAccessTokenCookie != nil {
+		prevAccessToken, err := jwt.Parse(prevAccessTokenCookie.Value, func(token *jwt.Token) (interface{}, error) {
+			return 	jwtDecodeSecret, nil
+		})
+		if err != nil {
+			if _, ok := err.(*jwt.ValidationError); !ok {
+				// If error is not validation, fail with server error response
+				utils.ServerErrorResponse(w, err)
+				return
+			}
+		}
+
+		// If access token is still valid, return empty 200
+		if prevAccessToken.Valid {
+			w.WriteHeader(200)
+			return
+		}
+	}
+
+
+	//validate previous refresh token
+	prevRefreshTokenCookie, err := r.Cookie("refresh")
 	if err != nil {
+		log.Printf("Cannot find refresh token")
 		utils.ServerErrorResponse(w, err)
 		return
 	}
-	prevAccessToken, err := jwt.Parse(prevAccessTokenCookie.Value, func(token *jwt.Token) (interface{}, error) {
+	prevRefreshToken, err := jwt.Parse(prevRefreshTokenCookie.Value, func(token *jwt.Token) (interface{}, error) {
 		return 	jwtDecodeSecret, nil
 	})
 	if err != nil {
 		utils.ServerErrorResponse(w, err)
 		return
 	}
-	if !prevAccessToken.Valid {
+
+	// If refresh token (and implicitly access token) is not valid return 401
+	if !prevRefreshToken.Valid {
 		w.WriteHeader(401)
 		return
 	}
-	prevAccessClaims := prevAccessToken.Claims.(jwt.MapClaims)
-	email, exists := prevAccessClaims["email"]
+
+	prevRefreshClaims := prevRefreshToken.Claims.(jwt.MapClaims)
+	token, exists := prevRefreshClaims["token"].(map[string]interface{})
+	if !exists {
+		utils.ServerErrorResponse(w, errors.New("refresh token is not correct format"))
+		return
+	}
+
+	userID := token["id"].(string)
+
+	email, exists := token["email"].(string)
 	if !exists {
 		utils.ServerErrorResponse(w, errors.New("could not extract email from previous access token"))
 		return
@@ -72,15 +75,15 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate new access token (with UserID)
 	accessClaims := SwitchClaims{
-		UserID: payload.UserID,
-		Email: email.(string),
+		UserID: userID,
+		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // TODO: Confirm timeframe
 			Issuer: "kidsloop",
 		},
 	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS512, accessClaims)
-
+	// If refresh token is still valid, re-issue access and refresh tokens
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS512, &accessClaims)
 	accessTokenString, err := accessToken.SignedString(jwtEncodeSecret)
 	if err != nil {
 		utils.ServerErrorResponse(w, err)
@@ -94,14 +97,15 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge: 900,
 		Expires: time.Now().Add(15 * time.Minute), //TODO: Confirm the timeframe
 	}
+
 	http.SetCookie(w, &accessCookie)
 
 	//Generate a Refresh Token
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS512, &RefreshClaims{
 		SessionID: uuid.NewString(),
 		Token: RefreshClaimToken{
-			UserID: &payload.UserID,
-			Email: email.(string),
+			UserID: &userID,
+			Email: email,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(time.Now()),
@@ -128,6 +132,18 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		Secure: true,
 	}
 	http.SetCookie(w, &refreshCookie)
-	w.WriteHeader(http.StatusOK)
+
+	q, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		utils.ServerErrorResponse(w, err)
+		return
+	}
+	if redirect := q.Get("redirect"); redirect != "" {
+		// TODO: Add check to restrict to "domainRegex"
+		http.Redirect(w, r, redirect, http.StatusTemporaryRedirect)
+		return
+	}
+
+	w.WriteHeader(200)
 	return
 }
