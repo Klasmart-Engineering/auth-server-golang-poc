@@ -64,7 +64,7 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	prevAccessClaims := prevAccessToken.Claims.(jwt.MapClaims)
-	email, exists := prevAccessClaims["email"]
+	email, exists := prevAccessClaims["email"].(string)
 	if !exists {
 		utils.ServerErrorResponse(w, errors.New("could not extract email from previous access token"))
 		return
@@ -73,7 +73,7 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	// Generate new access token (with UserID)
 	accessClaims := SwitchClaims{
 		UserID: payload.UserID,
-		Email: email.(string),
+		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // TODO: Confirm timeframe
 			Issuer: "kidsloop",
@@ -101,7 +101,7 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		SessionID: uuid.NewString(),
 		Token: RefreshClaimToken{
 			UserID: &payload.UserID,
-			Email: email.(string),
+			Email: email,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(time.Now()),
