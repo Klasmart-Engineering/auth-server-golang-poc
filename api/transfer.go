@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type AccessClaims struct {
@@ -50,76 +49,32 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		bearerClaims := providerToken.Claims.(jwt.MapClaims)
-		email, exists := bearerClaims["email"]
+		email, exists := bearerClaims["email"].(string)
 		if !exists {
 			utils.ServerErrorResponse(w, errors.New("could not extract email from provider token"))
 			return
 		}
 
-		log.Printf("Token is valid!")
+		log.Printf("Provider Token is valid!")
 
 		// Prepare to sign tokens
-		jwtSecret, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
+		jwtEncodeSecret, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
+
+		if err != nil {
+			utils.ServerErrorResponse(w, err)
+			return
+		}
 
 		// Generate an Access Token
-		if err != nil {
-			utils.ServerErrorResponse(w, err)
-			return
-		}
-
-		accessToken := jwt.NewWithClaims(jwt.SigningMethodRS512, &AccessClaims{
-			Email: email.(string),
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), //TODO: Confirm timeframe
-				Issuer: "kidsloop",
-			},
-		})
-
-		accessTokenString, err := accessToken.SignedString(jwtSecret)
-		if err != nil {
-			utils.ServerErrorResponse(w, err)
-			return
-		}
-		accessCookie := http.Cookie{
-			Name: "access",
-			Value: accessTokenString,
-			Domain: "localhost", //TODO: Use env var etc.
-			Path: "/",
-			MaxAge: 900,
-			Expires: time.Now().Add(15 * time.Minute), //TODO: Confirm the timeframe
-		}
+		accessToken := new(tokens.AccessToken)
+		accessToken.GenerateToken(jwtEncodeSecret, email, nil)
+		accessCookie := accessToken.CreateCookie("localhost")
 		http.SetCookie(w, &accessCookie)
 
 		//Generate a Refresh Token
-		refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS512, &RefreshClaims{
-			SessionID: uuid.NewString(),
-			Token: RefreshClaimToken{
-				Email: email.(string),
-			},
-			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt: jwt.NewNumericDate(time.Now()),
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(14 * 24 * time.Hour)), //TODO: Confirm timeframe
-				Issuer: "kidsloop",
-				Subject: "refresh",
-			},
-		})
-
-		refreshTokenString, err := refreshToken.SignedString(jwtSecret)
-		if err != nil {
-			utils.ServerErrorResponse(w, err)
-			return
-		}
-
-		refreshCookie := http.Cookie{
-			Name: "refresh",
-			Value: refreshTokenString,
-			Domain: "localhost", //TODO: Use env var etc.
-			Path: "/refresh",
-			MaxAge: 1206000,
-			Expires: time.Now().Add(1206000), //TODO: Confirm the timeframe
-			HttpOnly: true,
-			Secure: true,
-		}
+		refreshToken := new(tokens.RefreshToken)
+		refreshToken.GenerateToken(jwtEncodeSecret, uuid.NewString(), email, nil)
+		refreshCookie := refreshToken.CreateCookie("localhost")
 		http.SetCookie(w, &refreshCookie)
 
 		w.WriteHeader(http.StatusOK)

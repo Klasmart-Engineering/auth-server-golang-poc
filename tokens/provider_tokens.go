@@ -42,7 +42,10 @@ func (t *AzureB2CToken) keyFunc(token *jwt.Token) (interface{}, error) {
 func (t *AzureB2CToken) Parse() error {
 	token, err := jwt.Parse(t.TokenString, t.keyFunc)
 	if err != nil {
-		return err
+		if _, ok := err.(*jwt.ValidationError); !ok {
+			// If error is not validation, return error
+			return err
+		}
 	}
 	t.Token = token
 
