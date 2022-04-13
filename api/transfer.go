@@ -35,8 +35,10 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 		// Validate Identity Bearer Token
 		//TODO: Need to be able to manage AMS as well as AzureB2C
 		bearerTokenString := strings.TrimPrefix(r.Header.Get("authorization"), "Bearer ")
-
-		providerToken, err := tokens.ParseProviderToken(bearerTokenString)
+		providerToken := tokens.AzureB2CToken{
+			TokenString: bearerTokenString,
+		}
+		err := providerToken.Parse()
 		if err != nil {
 			utils.ServerErrorResponse(w, err)
 			return
