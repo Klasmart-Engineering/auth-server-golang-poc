@@ -3,7 +3,9 @@ package tokens
 import (
 	"crypto/rsa"
 	"github.com/golang-jwt/jwt/v4"
+	"kidsloop-auth-server-2/env"
 	"net/http"
+	"time"
 )
 
 type KidsloopToken struct {
@@ -13,8 +15,8 @@ type KidsloopToken struct {
 
 type KidsloopTokenIface interface {
 	Parse() error
-	GenerateToken(claims jwt.Claims) error
-	CreateCookie(domain string) http.Cookie
+	GenerateToken(claims jwt.Claims, duration time.Duration) error
+	CreateCookie(domain string, duration time.Duration) http.Cookie
 }
 
 func (t *KidsloopToken) Parse(jwtDecodeSecret *rsa.PublicKey) error {
@@ -36,7 +38,7 @@ func (t *KidsloopToken) Parse(jwtDecodeSecret *rsa.PublicKey) error {
 }
 
 func (t *KidsloopToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, claims jwt.Claims) error {
-	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)
+	token := jwt.NewWithClaims(jwt.GetSigningMethod(env.JwtAlgorithm), claims)
 	tokenString, err := token.SignedString(jwtEncodeSecret)
 	if err != nil {
 		return err

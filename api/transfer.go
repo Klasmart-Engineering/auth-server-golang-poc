@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"kidsloop-auth-server-2/env"
 	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
 	"log"
@@ -67,14 +68,14 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Generate an Access Token
 		accessToken := new(tokens.AccessToken)
-		accessToken.GenerateToken(jwtEncodeSecret, email, nil)
-		accessCookie := accessToken.CreateCookie("localhost")
+		accessToken.GenerateToken(jwtEncodeSecret, email, nil, env.JwtAccessTokenDuration)
+		accessCookie := accessToken.CreateCookie(env.Domain, env.JwtAccessTokenDuration)
 		http.SetCookie(w, &accessCookie)
 
 		//Generate a Refresh Token
 		refreshToken := new(tokens.RefreshToken)
-		refreshToken.GenerateToken(jwtEncodeSecret, uuid.NewString(), email, nil)
-		refreshCookie := refreshToken.CreateCookie("localhost")
+		refreshToken.GenerateToken(jwtEncodeSecret, uuid.NewString(), email, nil, env.JwtRefreshTokenDuration)
+		refreshCookie := refreshToken.CreateCookie(env.Domain, env.JwtRefreshTokenDuration)
 		http.SetCookie(w, &refreshCookie)
 
 		w.WriteHeader(http.StatusOK)

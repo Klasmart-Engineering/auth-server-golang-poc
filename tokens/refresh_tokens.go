@@ -3,6 +3,7 @@ package tokens
 import (
 	"crypto/rsa"
 	"github.com/golang-jwt/jwt/v4"
+	"kidsloop-auth-server-2/env"
 	"net/http"
 	"time"
 )
@@ -22,7 +23,7 @@ type RefreshClaimToken struct {
 	Email string `json:"email"`
 }
 
-func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID string, email string, userID *string) error {
+func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID string, email string, userID *string, duration time.Duration) error {
 	claims := RefreshClaims{
 		SessionID: sessionID,
 		Token: RefreshClaimToken{
@@ -30,8 +31,8 @@ func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID 
 			Email: email,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(14 * 24 * time.Hour)), // TODO: Confirm timeframe
-			Issuer: "kidsloop",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
+			Issuer: env.JwtIssuer,
 		},
 	}
 
@@ -43,14 +44,14 @@ func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID 
 	return nil
 }
 
-func (t *RefreshToken) CreateCookie(domain string) http.Cookie {
+func (t *RefreshToken) CreateCookie(domain string, duration time.Duration) http.Cookie {
 	cookie := http.Cookie{
 		Name:     "refresh",
 		Value:    *t.TokenString,
 		Domain:   domain,
 		Path:     "/refresh",
-		MaxAge:   1206000,
-		Expires:  time.Now().Add(1206000), //TODO: Confirm the timeframe
+		MaxAge:   int(duration.Seconds()),
+		Expires:  time.Now().Add(duration),
 		HttpOnly: true,
 		Secure:   true,
 	}

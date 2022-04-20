@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
 	"net/http"
 	"time"
@@ -52,17 +53,15 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		utils.ServerErrorResponse(w, err)
 		return
 	}
-	prevAccessToken, err := jwt.Parse(prevAccessTokenCookie.Value, func(token *jwt.Token) (interface{}, error) {
-		return 	jwtDecodeSecret, nil
-	})
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
+	prevAccessToken := new(tokens.AccessToken)
+	prevAccessToken.TokenString = &prevAccessTokenCookie.Value
+	prevAccessToken.Parse(jwtDecodeSecret)
+
 	if !prevAccessToken.Valid {
 		w.WriteHeader(401)
 		return
 	}
+
 	prevAccessClaims := prevAccessToken.Claims.(jwt.MapClaims)
 	email, exists := prevAccessClaims["email"].(string)
 	if !exists {
@@ -71,8 +70,8 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new access token (with UserID)
-	accessClaims := SwitchClaims{
-		UserID: payload.UserID,
+	accessClaims := tokens.AccessClaims{
+		UserID: &payload.UserID,
 		Email: email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // TODO: Confirm timeframe
