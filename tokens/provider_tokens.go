@@ -1,11 +1,12 @@
 package tokens
 
 import (
-	"encoding/json"
-	"github.com/MicahParks/keyfunc"
+	"context"
+	"crypto/rsa"
+	"fmt"
 	"github.com/golang-jwt/jwt/v4"
-	"io/ioutil"
-	"net/http"
+	"github.com/lestrrat-go/jwx/jwk"
+	"kidsloop-auth-server-2/env"
 )
 
 type ProviderToken interface {
@@ -17,30 +18,31 @@ type AzureB2CToken struct {
 	*jwt.Token
 }
 
-func (t *AzureB2CToken) keyFunc(token *jwt.Token) (interface{}, error) {
-	//TODO: Construct URL from env var and env
-	//TODO: Improve to look more like this example https://blog.jonathanchannon.com/2022-01-29-azuread-golang/
-	keyLookupResponse, err := http.Get("https://login.loadtest.kidsloop.live/8d922fec-c1fc-4772-b37e-18d2ce6790df/b2c_1a_relying_party_sign_up_log_in/discovery/v2.0/keys")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(keyLookupResponse.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	jwksJSON := json.RawMessage(body)
-	jkws, err := keyfunc.NewJSON(jwksJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	return jkws.Keyfunc(token)
-}
-
 func (t *AzureB2CToken) Parse() error {
-	token, err := jwt.Parse(t.TokenString, t.keyFunc)
+	token, err := jwt.Parse(t.TokenString, func(token *jwt.Token) (interface{}, error) {
+		keySet, err := jwk.Fetch(context.Background(), fmt.Sprintf("https://%s/%s/%s/discovery/%s/keys", env.AzureB2cDomain, env.AzureB2cTenantId, env.AzureB2cPolicyName, env.AzureB2cVersion))
+		if err != nil {
+			return nil, err
+		}
+
+		kid, ok := token.Header["kid"].(string)
+		if !ok {
+			return nil, fmt.Errorf("kid header not found")
+		}
+
+		key, ok := keySet.LookupKeyID(kid)
+		if !ok {
+			return nil, fmt.Errorf("key %v not found", kid)
+		}
+		publicKey := &rsa.PublicKey{}
+		err = key.Raw(publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse pubkey")
+		}
+
+		return publicKey, nil
+	})
+
 	if err != nil {
 		if _, ok := err.(*jwt.ValidationError); !ok {
 			// If error is not validation, return error
