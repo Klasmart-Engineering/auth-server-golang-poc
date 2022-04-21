@@ -1,12 +1,10 @@
 package tokens
 
 import (
-	"context"
 	"crypto/rsa"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/jwk"
-	"kidsloop-auth-server-2/env"
 )
 
 type ProviderToken interface {
@@ -18,12 +16,12 @@ type AzureB2CToken struct {
 	*jwt.Token
 }
 
-func (t *AzureB2CToken) Parse() error {
+func (t *AzureB2CToken) Parse(keySet jwk.Set) error {
 	token, err := jwt.Parse(t.TokenString, func(token *jwt.Token) (interface{}, error) {
-		keySet, err := jwk.Fetch(context.Background(), fmt.Sprintf("https://%s/%s/%s/discovery/%s/keys", env.AzureB2cDomain, env.AzureB2cTenantId, env.AzureB2cPolicyName, env.AzureB2cVersion))
-		if err != nil {
-			return nil, err
-		}
+		//keySet, err := jwk.Fetch(context.Background(), fmt.Sprintf("https://%s/%s/%s/discovery/%s/keys", env.AzureB2cDomain, env.AzureB2cTenantId, env.AzureB2cPolicyName, env.AzureB2cVersion))
+		//if err != nil {
+		//	return nil, err
+		//}
 
 		kid, ok := token.Header["kid"].(string)
 		if !ok {
@@ -35,7 +33,7 @@ func (t *AzureB2CToken) Parse() error {
 			return nil, fmt.Errorf("key %v not found", kid)
 		}
 		publicKey := &rsa.PublicKey{}
-		err = key.Raw(publicKey)
+		err := key.Raw(publicKey)
 		if err != nil {
 			return nil, fmt.Errorf("could not parse pubkey")
 		}
