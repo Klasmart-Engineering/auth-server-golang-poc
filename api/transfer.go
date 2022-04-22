@@ -67,13 +67,13 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Generate an Access Token
 		accessToken := new(tokens.AccessToken)
-		accessToken.GenerateToken(jwtEncodeSecret, email, nil, env.JwtAccessTokenDuration)
+		accessToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, email, nil, env.JwtAccessTokenDuration)
 		accessCookie := accessToken.CreateCookie(env.Domain, env.JwtAccessTokenDuration)
 		http.SetCookie(w, &accessCookie)
 
 		//Generate a Refresh Token
 		refreshToken := new(tokens.RefreshToken)
-		refreshToken.GenerateToken(jwtEncodeSecret, uuid.NewString(), email, nil, env.JwtRefreshTokenDuration)
+		refreshToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, uuid.NewString(), email, nil, env.JwtRefreshTokenDuration)
 		refreshCookie := refreshToken.CreateCookie(env.Domain, env.JwtRefreshTokenDuration)
 		http.SetCookie(w, &refreshCookie)
 

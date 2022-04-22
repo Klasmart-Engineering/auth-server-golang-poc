@@ -23,7 +23,7 @@ type RefreshClaimToken struct {
 	Email string `json:"email"`
 }
 
-func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID string, email string, userID *string, duration time.Duration) error {
+func (t *RefreshToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *rsa.PrivateKey, sessionID string, email string, userID *string, duration time.Duration) error {
 	claims := RefreshClaims{
 		SessionID: sessionID,
 		Token: RefreshClaimToken{
@@ -36,7 +36,7 @@ func (t *RefreshToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, sessionID 
 		},
 	}
 
-	err := t.KidsloopToken.GenerateToken(jwtEncodeSecret, claims)
+	err := t.KidsloopToken.GenerateToken(jwtSigningMethod, jwtEncodeSecret, claims)
 	if err != nil {
 		return err
 	}

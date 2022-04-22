@@ -18,7 +18,7 @@ type AccessClaims struct {
 	jwt.RegisteredClaims
 }
 
-func (t *AccessToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, email string, userID *string, duration time.Duration) error {
+func (t *AccessToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *rsa.PrivateKey, email string, userID *string, duration time.Duration) error {
 	claims := AccessClaims{
 		UserID: userID,
 		Email: email,
@@ -28,7 +28,7 @@ func (t *AccessToken) GenerateToken(jwtEncodeSecret *rsa.PrivateKey, email strin
 		},
 	}
 
-	err := t.KidsloopToken.GenerateToken(jwtEncodeSecret, claims)
+	err := t.KidsloopToken.GenerateToken(jwtSigningMethod, jwtEncodeSecret, claims)
 	if err != nil {
 		return err
 	}
