@@ -5,10 +5,10 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"kidsloop-auth-server-2/env"
 	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
 	"net/http"
-	"time"
 )
 
 type switchPayload struct {
@@ -70,63 +70,17 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate new access token (with UserID)
-	accessClaims := tokens.AccessClaims{
-		UserID: &payload.UserID,
-		Email: email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // TODO: Confirm timeframe
-			Issuer: "kidsloop",
-		},
-	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS512, accessClaims)
-
-	accessTokenString, err := accessToken.SignedString(jwtEncodeSecret)
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
-	accessCookie := http.Cookie{
-		Name: "access",
-		Value: accessTokenString,
-		Domain: "localhost", //TODO: Use env var etc.
-		Path: "/",
-		MaxAge: 900,
-		Expires: time.Now().Add(15 * time.Minute), //TODO: Confirm the timeframe
-	}
+	accessToken := new(tokens.AccessToken)
+	accessToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, email, &payload.UserID, env.JwtAccessTokenDuration)
+	accessCookie := accessToken.CreateCookie(env.Domain, env.JwtAccessTokenDuration)
 	http.SetCookie(w, &accessCookie)
 
 	//Generate a Refresh Token
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS512, &RefreshClaims{
-		SessionID: uuid.NewString(),
-		Token: RefreshClaimToken{
-			UserID: &payload.UserID,
-			Email: email,
-		},
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(14 * 24 * time.Hour)), //TODO: Confirm timeframe
-			Issuer: "kidsloop",
-			Subject: "refresh",
-		},
-	})
-
-	refreshTokenString, err := refreshToken.SignedString(jwtEncodeSecret)
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
-
-	refreshCookie := http.Cookie{
-		Name: "refresh",
-		Value: refreshTokenString,
-		Domain: "localhost", //TODO: Use env var etc.
-		Path: "/refresh",
-		MaxAge: 1206000,
-		Expires: time.Now().Add(1206000), //TODO: Confirm the timeframe
-		HttpOnly: true,
-		Secure: true,
-	}
+	refreshToken := new(tokens.RefreshToken)
+	refreshToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, uuid.NewString(), email, &payload.UserID, env.JwtRefreshTokenDuration)
+	refreshCookie := refreshToken.CreateCookie(env.Domain, env.JwtRefreshTokenDuration)
 	http.SetCookie(w, &refreshCookie)
+
 	w.WriteHeader(http.StatusOK)
 	return
 }
