@@ -2,8 +2,11 @@ package env
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/jwk"
+	"kidsloop-auth-server-2/utils"
 	"os"
 	"strconv"
 	"time"
@@ -14,6 +17,8 @@ var JwtIssuer = getEnv("JWT_ISSUER", "kidsloop")
 var JwtAlgorithm = getEnv("JWT_ALGORITHM", "RS512")
 var JwtAccessTokenDuration = getTimeEnv("JWT_ACCESS_TOKEN_DURATION", "900")
 var JwtRefreshTokenDuration = getTimeEnv("JWT_ACCESS_REFRESH_DURATION", "1.206e+06")
+
+var JwtPublicKey, JwtPrivateKey = getJwtKeys()
 
 // Azure B2C configuration
 var AzureB2cEnabled = getEnv("AZURE_B2C_ENABLED", "true")
@@ -57,6 +62,21 @@ func getAzureKeySet(endpoint string) *jwk.Set {
 	}
 
 	return &keySet
+}
+
+// TODO: This is currently a stub, pulling in test keys. It needs to be expanded to parse the various supported envvars.
+func getJwtKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
+	jwtPublicKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(utils.PublicKey))
+	if err != nil {
+		panic(err)
+	}
+
+	jwtPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
+	if err != nil {
+		panic(err)
+	}
+
+	return jwtPublicKey, jwtPrivateKey
 }
 
 

@@ -1,14 +1,13 @@
 package utils
 
-import "log"
+import (
+	"github.com/google/uuid"
+	"log"
+)
 
-type DBInterface interface {
+type DBConnector interface {
 	ConnectToDB() interface{}
 	UserExists(userID string) bool
-}
-
-type DBConnector struct {
-	Connector DBInterface
 }
 
 type DummyDBConnector struct {
@@ -20,6 +19,10 @@ func (c DummyDBConnector) ConnectToDB() interface{} {
 }
 
 func (c DummyDBConnector) UserExists(userID string) bool {
-	log.Printf("User ID: %s", userID)
-	return true
+	if _, err := uuid.Parse(userID); err == nil {
+		log.Printf("User ID: %s", userID)
+		return true
+	} else {
+		return false
+	}
 }

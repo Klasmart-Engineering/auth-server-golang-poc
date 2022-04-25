@@ -1,86 +1,116 @@
 package api
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"io"
 	"kidsloop-auth-server-2/env"
 	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
 	"net/http"
+	"time"
 )
 
 type switchPayload struct {
 	UserID string `json:"user_id"`
 }
 
-type SwitchClaims struct {
-	UserID string `json:"id"`
-	Email string `json:"email"`
-	jwt.RegisteredClaims
+func SwitchHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Create a DBConnector interface that connects to an actual DB.
+	db := new(utils.DummyDBConnector)
+	prevAccessCookie, err := r.Cookie("access")
+	if err != nil {
+		utils.ServerErrorResponse(w, err)
+		return
+	}
+	statusCode, accessCookie, refreshCookie, err := switchExec(
+		db,
+		r.Body,
+		prevAccessCookie,
+		env.Domain,
+		env.JwtAlgorithm,
+		env.JwtPublicKey,
+		env.JwtPrivateKey,
+		env.JwtAccessTokenDuration,
+		env.JwtRefreshTokenDuration,
+	)
+	if err != nil {
+		utils.ServerErrorResponse(w, err)
+		return
+	}
+
+	if statusCode != http.StatusOK {
+		w.WriteHeader(statusCode)
+		return
+	}
+
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
+	w.WriteHeader(statusCode)
+	return
 }
 
-func SwitchHandler(w http.ResponseWriter, r *http.Request) {
-	jwtDecodeSecret, err := jwt.ParseRSAPublicKeyFromPEM([]byte(utils.PublicKey))
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
-	jwtEncodeSecret, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
 
-	db := utils.DBConnector{
-		Connector: utils.DummyDBConnector{},
-	}
+func switchExec(
+	db utils.DBConnector,
+	body io.ReadCloser,
+	prevAccessCookie *http.Cookie,
+	domain string,
+	jwtAlgorithm string,
+	jwtPublicKey *rsa.PublicKey,
+	jwtPrivateKey *rsa.PrivateKey,
+	jwtAccessTokenDuration time.Duration,
+	jwtRefreshTokenDuration time.Duration,
+	) (int, *http.Cookie, *http.Cookie, error) {
 
-	// TODO: Move everything under here to a separate method so it can be tested
 	var payload switchPayload
-	d := json.NewDecoder(r.Body)
-	d.Decode(&payload)
-	db.Connector.ConnectToDB()
-	if !db.Connector.UserExists(payload.UserID) {
-		utils.ServerErrorResponse(w, errors.New("user ID is not valid"))
-		return
+	d := json.NewDecoder(body)
+	err := d.Decode(&payload)
+	if err != nil {
+		return http.StatusBadRequest, nil, nil, errors.New("unable to decode request body JSON")
+	}
+	db.ConnectToDB()
+	if !db.UserExists(payload.UserID) {
+		return http.StatusUnauthorized, nil, nil, nil
 	}
 
 	// Validate previous access token
-	prevAccessTokenCookie, err := r.Cookie("access")
-	if err != nil {
-		utils.ServerErrorResponse(w, err)
-		return
-	}
+
 	prevAccessToken := new(tokens.AccessToken)
-	prevAccessToken.TokenString = &prevAccessTokenCookie.Value
-	prevAccessToken.Parse(jwtDecodeSecret)
+	prevAccessToken.TokenString = &prevAccessCookie.Value
+	err = prevAccessToken.Parse(jwtPublicKey)
+	if err != nil {
+		return http.StatusBadRequest, nil, nil, err
+	}
 
 	if !prevAccessToken.Valid {
-		w.WriteHeader(401)
-		return
+		return http.StatusUnauthorized, nil, nil, nil
 	}
 
 	prevAccessClaims := prevAccessToken.Claims.(jwt.MapClaims)
 	email, exists := prevAccessClaims["email"].(string)
 	if !exists {
-		utils.ServerErrorResponse(w, errors.New("could not extract email from previous access token"))
-		return
+		return http.StatusBadRequest, nil, nil, errors.New("could not extract email from previous access token")
 	}
 
 	// Generate new access token (with UserID)
 	accessToken := new(tokens.AccessToken)
-	accessToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, email, &payload.UserID, env.JwtAccessTokenDuration)
-	accessCookie := accessToken.CreateCookie(env.Domain, env.JwtAccessTokenDuration)
-	http.SetCookie(w, &accessCookie)
+	err = accessToken.GenerateToken(jwtAlgorithm, jwtPrivateKey, email, &payload.UserID, jwtAccessTokenDuration)
+	if err != nil {
+		return http.StatusInternalServerError, nil, nil, err
+	}
+	accessCookie := accessToken.CreateCookie(domain, jwtAccessTokenDuration)
 
 	//Generate a Refresh Token
 	refreshToken := new(tokens.RefreshToken)
-	refreshToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, uuid.NewString(), email, &payload.UserID, env.JwtRefreshTokenDuration)
-	refreshCookie := refreshToken.CreateCookie(env.Domain, env.JwtRefreshTokenDuration)
-	http.SetCookie(w, &refreshCookie)
+	err = refreshToken.GenerateToken(jwtAlgorithm, jwtPrivateKey, uuid.NewString(), email, &payload.UserID, jwtRefreshTokenDuration)
+	if err != nil {
+		return http.StatusInternalServerError, nil, nil, err
+	}
+	refreshCookie := refreshToken.CreateCookie(domain, jwtRefreshTokenDuration)
 
-	w.WriteHeader(http.StatusOK)
-	return
+	return http.StatusOK, &accessCookie, &refreshCookie, nil
 }
