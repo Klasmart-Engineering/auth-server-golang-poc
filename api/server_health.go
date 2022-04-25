@@ -3,12 +3,16 @@ package api
 import "net/http"
 
 func ServerHealth(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
+	returnStatus := serverHealthExec(r.Method)
+	w.WriteHeader(returnStatus)
+	return
+}
+
+func serverHealthExec(method string) int {
+	switch method {
 	case "GET":
-		w.WriteHeader(http.StatusOK)
-		return
+		return http.StatusOK
 	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
+		return http.StatusMethodNotAllowed
 	}
 }
