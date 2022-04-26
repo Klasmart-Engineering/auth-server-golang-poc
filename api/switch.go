@@ -23,7 +23,7 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	db := new(utils.DummyDBConnector)
 	prevAccessCookie, err := r.Cookie("access")
 	if err != nil {
-		utils.ServerErrorResponse(w, err)
+		utils.ServerErrorResponse(http.StatusBadRequest, w, err)
 		return
 	}
 	statusCode, accessCookie, refreshCookie, err := switchExec(
@@ -38,7 +38,7 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 		env.JwtRefreshTokenDuration,
 	)
 	if err != nil {
-		utils.ServerErrorResponse(w, err)
+		utils.ServerErrorResponse(statusCode, w, err)
 		return
 	}
 

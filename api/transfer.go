@@ -1,86 +1,94 @@
 package api
 
 import (
+	"crypto/rsa"
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwk"
 	"kidsloop-auth-server-2/env"
 	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
-
-type AccessClaims struct {
-	Email string `json:"email"`
-	jwt.RegisteredClaims
-}
-
-type RefreshClaims struct {
-	SessionID string `json:"session_id"`
-	Token RefreshClaimToken `json:"token"`
-	jwt.RegisteredClaims
-}
-
-type RefreshClaimToken struct {
-	UserID *string `json:"id,omitempty"`
-	Email string `json:"email"`
-}
-
 
 func TransferHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		// Validate Identity Bearer Token
 		bearerTokenString := strings.TrimPrefix(r.Header.Get("authorization"), "Bearer ")
-		providerToken := tokens.AzureB2CToken{
-			TokenString: bearerTokenString,
-		}
-		err := providerToken.Parse(*env.AzureKeySet)
+		email, valid, err := validateBearerToken(bearerTokenString, env.AzureKeySet)
 		if err != nil {
-			utils.ServerErrorResponse(w, err)
+			utils.ServerErrorResponse(http.StatusBadRequest, w, err)
+		}
+		if !valid {
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		if !providerToken.Valid {
-			w.WriteHeader(401)
-			return
-		}
-
-		bearerClaims := providerToken.Claims.(jwt.MapClaims)
-		email, exists := bearerClaims["email"].(string)
-		if !exists {
-			utils.ServerErrorResponse(w, errors.New("could not extract email from provider token"))
-			return
-		}
-
-		log.Printf("Provider Token is valid!")
-
-		// Prepare to sign tokens
-		jwtEncodeSecret, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
-
+		statusCode, accessCookie, refreshCookie, err := transferExec(
+			*email,
+			env.Domain,
+			env.JwtAlgorithm,
+			env.JwtPrivateKey,
+			env.JwtAccessTokenDuration,
+			env.JwtRefreshTokenDuration,
+		)
 		if err != nil {
-			utils.ServerErrorResponse(w, err)
+			utils.ServerErrorResponse(statusCode, w, err)
+		}
+
+		if statusCode != http.StatusOK {
+			w.WriteHeader(statusCode)
 			return
 		}
 
-		// Generate an Access Token
-		accessToken := new(tokens.AccessToken)
-		accessToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, email, nil, env.JwtAccessTokenDuration)
-		accessCookie := accessToken.CreateCookie(env.Domain, env.JwtAccessTokenDuration)
-		http.SetCookie(w, &accessCookie)
-
-		//Generate a Refresh Token
-		refreshToken := new(tokens.RefreshToken)
-		refreshToken.GenerateToken(env.JwtAlgorithm, jwtEncodeSecret, uuid.NewString(), email, nil, env.JwtRefreshTokenDuration)
-		refreshCookie := refreshToken.CreateCookie(env.Domain, env.JwtRefreshTokenDuration)
-		http.SetCookie(w, &refreshCookie)
-
-		w.WriteHeader(http.StatusOK)
+		http.SetCookie(w, accessCookie)
+		http.SetCookie(w, refreshCookie)
+		w.WriteHeader(statusCode)
 		return
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+}
+
+func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bool, error){
+	// Validate Identity Bearer Token
+	providerToken := tokens.AzureB2CToken{
+		TokenString: bearerTokenString,
+	}
+	err := providerToken.Parse(*keySet)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !providerToken.Valid {
+		return nil, false, nil
+	}
+
+	bearerClaims := providerToken.Claims.(jwt.MapClaims)
+	email, exists := bearerClaims["email"].(string)
+	if !exists {
+		return nil, true, errors.New("could not extract email from provider token")
+	}
+
+	log.Printf("Provider Token is valid!")
+	return &email, true, nil
+}
+
+func transferExec(email string, domain string, jwtAlgorithm string, jwtPrivateKey *rsa.PrivateKey, jwtAccessTokenDuration time.Duration, jwtRefreshTokenDuration time.Duration) (int, *http.Cookie, *http.Cookie, error){
+	// Generate an Access Token
+	accessToken := new(tokens.AccessToken)
+	accessToken.GenerateToken(jwtAlgorithm, jwtPrivateKey, email, nil, jwtAccessTokenDuration)
+	accessCookie := accessToken.CreateCookie(domain, jwtAccessTokenDuration)
+
+	//Generate a Refresh Token
+	refreshToken := new(tokens.RefreshToken)
+	refreshToken.GenerateToken(jwtAlgorithm, jwtPrivateKey, uuid.NewString(), email, nil, jwtRefreshTokenDuration)
+	refreshCookie := refreshToken.CreateCookie(domain, jwtRefreshTokenDuration)
+
+	return http.StatusOK, &accessCookie, &refreshCookie, nil
 }
