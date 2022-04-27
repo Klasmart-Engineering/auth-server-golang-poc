@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func ServerErrorResponse(statusCode int, w http.ResponseWriter, e error){
+func ServerErrorResponse(statusCode int, w http.ResponseWriter, e error) {
 	w.WriteHeader(statusCode)
 	_, err := fmt.Fprintf(w, e.Error())
 	if err != nil {

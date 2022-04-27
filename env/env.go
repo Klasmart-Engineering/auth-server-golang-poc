@@ -78,5 +78,3 @@ func getJwtKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
 
 	return jwtPublicKey, jwtPrivateKey
 }
-
-

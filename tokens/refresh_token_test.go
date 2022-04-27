@@ -10,7 +10,7 @@ func TestRefreshToken_GenerateToken(t *testing.T) {
 	_, jwtEncodeSecret, _, _ := test.LoadTestData()
 	refreshToken := RefreshToken{}
 	userID := "someuserID"
-	err := refreshToken.GenerateToken("RS512", jwtEncodeSecret, "somesessionID", "somebody@kidsloop.live", &userID, 5 * time.Minute)
+	err := refreshToken.GenerateToken("RS512", jwtEncodeSecret, "somesessionID", "somebody@kidsloop.live", &userID, 5*time.Minute)
 	if err != nil {
 		t.Errorf("failed to genertate token: %e", err)
 	}
@@ -26,12 +26,12 @@ func TestRefreshToken_CreateCookie(t *testing.T) {
 	_, jwtEncodeSecret, _, _ := test.LoadTestData()
 	refreshToken := RefreshToken{}
 	userID := "someuserID"
-	err := refreshToken.GenerateToken("RS512", jwtEncodeSecret, "somesessionID", "somebody@kidsloop.live", &userID, 5 * time.Minute)
+	err := refreshToken.GenerateToken("RS512", jwtEncodeSecret, "somesessionID", "somebody@kidsloop.live", &userID, 5*time.Minute)
 	if err != nil {
 		t.Errorf("failed to genertate token: %e", err)
 	}
 
-	refreshCookie := refreshToken.CreateCookie("localhost", 5 * time.Minute)
+	refreshCookie := refreshToken.CreateCookie("localhost", 5*time.Minute)
 	if refreshCookie.Name != "refresh" {
 		t.Errorf("cookie name not correct")
 	}

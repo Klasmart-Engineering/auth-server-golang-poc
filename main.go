@@ -10,10 +10,10 @@ import (
 func main() {
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://kidskube-dev.kidsloop.live"},
+		AllowedOrigins:   []string{"https://kidskube-dev.kidsloop.live"},
 		AllowCredentials: true,
-		AllowedHeaders: []string{"Authorization", "Content-Type"},
-		MaxAge: 60 * 60 * 24, // One day
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		MaxAge:           60 * 60 * 24, // One day
 	})
 
 	mux := http.NewServeMux()

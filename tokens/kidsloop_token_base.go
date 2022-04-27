@@ -8,8 +8,8 @@ import (
 )
 
 type KidsloopToken struct {
-    TokenString *string
-    *jwt.Token
+	TokenString *string
+	*jwt.Token
 }
 
 type KidsloopTokenIface interface {
@@ -20,7 +20,7 @@ type KidsloopTokenIface interface {
 
 func (t *KidsloopToken) Parse(jwtDecodeSecret *rsa.PublicKey) error {
 	token, err := jwt.Parse(*t.TokenString, func(token *jwt.Token) (interface{}, error) {
-		return 	jwtDecodeSecret, nil
+		return jwtDecodeSecret, nil
 	})
 
 	if err != nil {
@@ -46,5 +46,3 @@ func (t *KidsloopToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *
 	t.TokenString = &tokenString
 	return nil
 }
-
-

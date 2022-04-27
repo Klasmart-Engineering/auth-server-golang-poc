@@ -13,14 +13,14 @@ func SignOutHandler(w http.ResponseWriter, r *http.Request) {
 
 func signOutExec() (http.Cookie, http.Cookie) {
 	accessCookie := http.Cookie{
-		Name: "access",
-		Path: "/",
+		Name:   "access",
+		Path:   "/",
 		MaxAge: -1,
 	}
 
 	refreshCookie := http.Cookie{
-		Name: "refresh",
-		Path: "/refresh",
+		Name:   "refresh",
+		Path:   "/refresh",
 		MaxAge: -1,
 	}
 

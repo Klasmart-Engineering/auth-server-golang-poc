@@ -69,12 +69,12 @@ func refreshExec(
 	jwtAlgorithm string,
 	jwtPublicKey *rsa.PublicKey,
 	jwtPrivateKey *rsa.PrivateKey,
-	) (int, *http.Cookie, *http.Cookie, error) {
+) (int, *http.Cookie, *http.Cookie, error) {
 
 	// Validate previous access token, if it is nil continue to validate refresh token
 	if prevAccessCookie != nil {
 		prevAccessToken, err := jwt.Parse(prevAccessCookie.Value, func(token *jwt.Token) (interface{}, error) {
-			return 	jwtPublicKey, nil
+			return jwtPublicKey, nil
 		})
 		if err != nil {
 			if _, ok := err.(*jwt.ValidationError); !ok {
@@ -91,7 +91,7 @@ func refreshExec(
 
 	// validate previous refresh token
 	prevRefreshToken, err := jwt.Parse(prevRefreshCookie.Value, func(token *jwt.Token) (interface{}, error) {
-		return 	jwtPublicKey, nil
+		return jwtPublicKey, nil
 	})
 	if err != nil {
 		return http.StatusInternalServerError, nil, nil, err

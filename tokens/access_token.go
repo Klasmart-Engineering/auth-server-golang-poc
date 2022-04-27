@@ -14,17 +14,17 @@ type AccessToken struct {
 
 type AccessClaims struct {
 	UserID *string `json:"id,omitempty"`
-	Email string `json:"email"`
+	Email  string  `json:"email"`
 	jwt.RegisteredClaims
 }
 
 func (t *AccessToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *rsa.PrivateKey, email string, userID *string, duration time.Duration) error {
 	claims := AccessClaims{
 		UserID: userID,
-		Email: email,
+		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)), // TODO: Confirm timeframe
-			Issuer: env.JwtIssuer,
+			Issuer:    env.JwtIssuer,
 		},
 	}
 
@@ -42,10 +42,9 @@ func (t *AccessToken) CreateCookie(domain string, duration time.Duration) http.C
 		Value:   *t.TokenString,
 		Domain:  domain,
 		Path:    "/",
-		MaxAge: int(duration.Seconds()),
+		MaxAge:  int(duration.Seconds()),
 		Expires: time.Now().Add(duration),
 	}
 
 	return cookie
 }
-

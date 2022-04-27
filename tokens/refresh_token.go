@@ -13,14 +13,14 @@ type RefreshToken struct {
 }
 
 type RefreshClaims struct {
-	SessionID string `json:"session_id"`
-	Token RefreshClaimToken `json:"token"`
+	SessionID string            `json:"session_id"`
+	Token     RefreshClaimToken `json:"token"`
 	jwt.RegisteredClaims
 }
 
 type RefreshClaimToken struct {
 	UserID *string `json:"id,omitempty"`
-	Email string `json:"email"`
+	Email  string  `json:"email"`
 }
 
 func (t *RefreshToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *rsa.PrivateKey, sessionID string, email string, userID *string, duration time.Duration) error {
@@ -28,11 +28,11 @@ func (t *RefreshToken) GenerateToken(jwtSigningMethod string, jwtEncodeSecret *r
 		SessionID: sessionID,
 		Token: RefreshClaimToken{
 			UserID: userID,
-			Email: email,
+			Email:  email,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
-			Issuer: env.JwtIssuer,
+			Issuer:    env.JwtIssuer,
 		},
 	}
 

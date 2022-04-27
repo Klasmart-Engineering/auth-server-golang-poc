@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-
 func TestKidsloopToken_Parse(t *testing.T) {
 	jwtDecodeSecret, _, _, testTokenString := test.LoadTestData()
 

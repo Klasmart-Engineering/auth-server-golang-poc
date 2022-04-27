@@ -53,7 +53,6 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-
 func switchExec(
 	db utils.DBConnector,
 	body io.ReadCloser,
@@ -64,7 +63,7 @@ func switchExec(
 	jwtPrivateKey *rsa.PrivateKey,
 	jwtAccessTokenDuration time.Duration,
 	jwtRefreshTokenDuration time.Duration,
-	) (int, *http.Cookie, *http.Cookie, error) {
+) (int, *http.Cookie, *http.Cookie, error) {
 
 	var payload switchPayload
 	d := json.NewDecoder(body)

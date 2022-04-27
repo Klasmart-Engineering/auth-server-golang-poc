@@ -55,7 +55,7 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bool, error){
+func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bool, error) {
 	// Validate Identity Bearer Token
 	providerToken := tokens.AzureB2CToken{
 		TokenString: bearerTokenString,
@@ -79,7 +79,7 @@ func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bo
 	return &email, true, nil
 }
 
-func transferExec(email string, domain string, jwtAlgorithm string, jwtPrivateKey *rsa.PrivateKey, jwtAccessTokenDuration time.Duration, jwtRefreshTokenDuration time.Duration) (int, *http.Cookie, *http.Cookie, error){
+func transferExec(email string, domain string, jwtAlgorithm string, jwtPrivateKey *rsa.PrivateKey, jwtAccessTokenDuration time.Duration, jwtRefreshTokenDuration time.Duration) (int, *http.Cookie, *http.Cookie, error) {
 	// Generate an Access Token
 	accessToken := new(tokens.AccessToken)
 	accessToken.GenerateToken(jwtAlgorithm, jwtPrivateKey, email, nil, jwtAccessTokenDuration)

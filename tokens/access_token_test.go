@@ -10,7 +10,7 @@ func TestAccessToken_GenerateToken(t *testing.T) {
 	_, jwtEncodeSecret, _, _ := test.LoadTestData()
 	accessToken := AccessToken{}
 	userID := "someuserID"
-	err := accessToken.GenerateToken("RS512", jwtEncodeSecret, "somebody@kidsloop.live", &userID, 5 * time.Minute)
+	err := accessToken.GenerateToken("RS512", jwtEncodeSecret, "somebody@kidsloop.live", &userID, 5*time.Minute)
 	if err != nil {
 		t.Errorf("failed to genertate token: %e", err)
 	}
@@ -26,12 +26,12 @@ func TestAccessToken_CreateCookie(t *testing.T) {
 	_, jwtEncodeSecret, _, _ := test.LoadTestData()
 	accessToken := AccessToken{}
 	userID := "someuserID"
-	err := accessToken.GenerateToken("RS512", jwtEncodeSecret, "somebody@kidsloop.live", &userID, 5 * time.Minute)
+	err := accessToken.GenerateToken("RS512", jwtEncodeSecret, "somebody@kidsloop.live", &userID, 5*time.Minute)
 	if err != nil {
 		t.Errorf("failed to genertate token: %e", err)
 	}
 
-	accessCookie := accessToken.CreateCookie("localhost", 5 * time.Minute)
+	accessCookie := accessToken.CreateCookie("localhost", 5*time.Minute)
 	if accessCookie.Name != "access" {
 		t.Errorf("cookie name not correct")
 	}

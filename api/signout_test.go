@@ -7,14 +7,14 @@ import (
 
 func TestSignOutExec(t *testing.T) {
 	wantAccessCookie := http.Cookie{
-		Name: "access",
-		Path: "/",
+		Name:   "access",
+		Path:   "/",
 		MaxAge: -1,
 	}
 
 	wantRefreshCookie := http.Cookie{
-		Name: "refresh",
-		Path: "/refresh",
+		Name:   "refresh",
+		Path:   "/refresh",
 		MaxAge: -1,
 	}
 
