@@ -1,4 +1,4 @@
-package utils
+package test
 
 const PublicKey = `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2WHjHUr9GAUlpk+5kmZW

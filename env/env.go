@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/jwk"
-	"kidsloop-auth-server-2/utils"
+	"kidsloop-auth-server-2/test"
 	"os"
 	"strconv"
 	"time"
@@ -66,12 +66,12 @@ func getAzureKeySet(endpoint string) *jwk.Set {
 
 // TODO: This is currently a stub, pulling in test keys. It needs to be expanded to parse the various supported envvars.
 func getJwtKeys() (*rsa.PublicKey, *rsa.PrivateKey) {
-	jwtPublicKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(utils.PublicKey))
+	jwtPublicKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(test.PublicKey))
 	if err != nil {
 		panic(err)
 	}
 
-	jwtPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(utils.PrivateKey))
+	jwtPrivateKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(test.PrivateKey))
 	if err != nil {
 		panic(err)
 	}
