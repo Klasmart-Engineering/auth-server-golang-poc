@@ -27,6 +27,7 @@ func TestRefreshExec(t *testing.T) {
 
 	wantStatus := http.StatusOK
 
+	// First test: access token is valid, should return (200, nil, nil, nil)
 	gotStatus, gotAccessCookie, gotRefreshCookie, err := refreshExec(
 		&prevAccessCookie,
 		&prevRefreshCookie,
@@ -47,6 +48,7 @@ func TestRefreshExec(t *testing.T) {
 		t.Errorf("HTTP status is not 200 OK")
 	}
 
+	// Second test: access token is nil, should return (200, accessCookie, refreshCookie, nil)
 	gotStatus, gotAccessCookie, gotRefreshCookie, err = refreshExec(
 		nil,
 		&prevRefreshCookie,

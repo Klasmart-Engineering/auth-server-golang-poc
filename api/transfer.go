@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// TransferHandler - Wrapper function called from the main HTTP Server Mutex
 func TransferHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
@@ -55,6 +56,9 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// validateBearerToken - Internal function to validate the bearer token provided by Azure (or other ID provider)
+// This function has been abstracted to be able to test it in isolation
+// TODO: Add a test for this function
 func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bool, error) {
 	// Validate Identity Bearer Token
 	providerToken := tokens.AzureB2CToken{
@@ -79,6 +83,8 @@ func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bo
 	return &email, true, nil
 }
 
+// transferExec - Internal function to issue a new access token and refresh token
+// This function has been abstracted to be able to test it in isolation
 func transferExec(email string, domain string, jwtAlgorithm string, jwtPrivateKey *rsa.PrivateKey, jwtAccessTokenDuration time.Duration, jwtRefreshTokenDuration time.Duration) (int, *http.Cookie, *http.Cookie, error) {
 	// Generate an Access Token
 	accessToken := new(tokens.AccessToken)

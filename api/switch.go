@@ -18,6 +18,7 @@ type switchPayload struct {
 	UserID string `json:"user_id"`
 }
 
+// SwitchHandler - Wrapper function called from the main HTTP Server Mutex
 func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: Create a DBConnector interface that connects to an actual DB.
 	db := new(utils.DummyDBConnector)
@@ -53,6 +54,8 @@ func SwitchHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// switchExec - Internal function to validate existing tokens and replace them
+// This function has been abstracted to be able to test it in isolation
 func switchExec(
 	db utils.DBConnector,
 	body io.ReadCloser,

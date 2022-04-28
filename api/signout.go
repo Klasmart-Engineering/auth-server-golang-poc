@@ -2,6 +2,7 @@ package api
 
 import "net/http"
 
+// SignOutHandler - Wrapper function called from the main HTTP Server Mutex
 func SignOutHandler(w http.ResponseWriter, r *http.Request) {
 	accessCookie, refreshCookie := signOutExec()
 	http.SetCookie(w, &accessCookie)
@@ -11,6 +12,8 @@ func SignOutHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// signOutExec - Internal function to perform sign out
+// This function has been abstracted to be able to test it in isolation
 func signOutExec() (http.Cookie, http.Cookie) {
 	accessCookie := http.Cookie{
 		Name:   "access",
