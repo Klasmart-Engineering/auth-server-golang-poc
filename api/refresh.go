@@ -41,12 +41,9 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if accessCookie != nil {
-		http.SetCookie(w, accessCookie)
-	}
-	if refreshCookie != nil {
-		http.SetCookie(w, refreshCookie)
-	}
+	// If cookies are nil, they will be silently dropped
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
 
 	// Parse query URL to check for redirect
 	q, err := url.ParseQuery(r.URL.RawQuery)
@@ -101,7 +98,6 @@ func refreshExec(
 			// If error is not validation, fail with server error response
 			return http.StatusInternalServerError, nil, nil, err
 		}
-
 	}
 
 	// If refresh token (and thus implicitly also access token) is not valid, return 401
