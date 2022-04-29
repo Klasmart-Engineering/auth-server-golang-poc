@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+type Claims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
 func LoadTestData() (*rsa.PublicKey, *rsa.PrivateKey, *jwt.Token, string) {
 	publicKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(PublicKey))
 	if err != nil {
@@ -18,7 +23,15 @@ func LoadTestData() (*rsa.PublicKey, *rsa.PrivateKey, *jwt.Token, string) {
 		log.Fatalf("failed to load rsa private key: %e", err)
 	}
 
-	testToken := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.RegisteredClaims{Issuer: "test", ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute))})
+	testClaims := Claims{
+		Email: "someone@somewhere.com",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer: "test",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+		},
+	}
+
+	testToken := jwt.NewWithClaims(jwt.SigningMethodRS512, testClaims)
 	testTokenString, err := testToken.SignedString(privateKey)
 	if err != nil {
 		log.Fatalf("failed to sign test token: %e", err)
