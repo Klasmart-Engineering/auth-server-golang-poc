@@ -16,9 +16,7 @@ The current version makes a call out the User Service's database. In order to av
 There is also a pair of RSA keys (in `test/rsa_keys.go`). These were generated specifically for this project, and are not used elsewhere. These are intended to be used in unit tests to avoid the need for access to live RSA keys. However, they are currently used in the main code base as well. This should be factored out when the env vars are fully implemented.
 
 ## Unit tests
-A basic set of nit tests have been created to cover most functions, for at least the happy path. There is a lot of scope to improve the tests and coverage. Testing the Azure B2C token validation is particular tricky as it is hard to do so without a) providing a valid token (which can only be created by Azure), and b) calling to the Azure JWK endpoint to get the key. It might make sense to refactor the functions so that a test can generate a token and JWK key which mimics the Azure setup.
-
-To run the full suite of tests with coverage report:
+A basic set of unit tests have been created to cover most functions, for at least the happy path. There is a lot of scope to improve the tests and coverage.  To run the full suite of tests with coverage report:
 ```
 cd /path/to/auth-server-golang-poc
 go test -v -cover ./...
