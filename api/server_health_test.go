@@ -6,16 +6,20 @@ import (
 )
 
 func TestServerHealthExec(t *testing.T) {
-	wantGetResponse := http.StatusOK
-	wantOtherResponse := http.StatusMethodNotAllowed
 
-	gotGetResponse := serverHealthExec(http.MethodGet)
-	gotOtherResponse := serverHealthExec(http.MethodPost)
+	// First test: request with GET method, should return (200)
+	t.Run("GetRequest", func(t *testing.T) {
+		gotResponse := serverHealthExec(http.MethodGet)
+		if gotResponse != http.StatusOK {
+			t.Errorf("GET response is not 200 OK")
+		}
+	})
 
-	if gotGetResponse != wantGetResponse {
-		t.Errorf("GET response is not correct. Want: %d, Got: %d", wantGetResponse, gotGetResponse)
-	}
-	if gotOtherResponse != wantOtherResponse {
-		t.Errorf("Other (POST) response is not correct. Want %d, Got: %d", wantOtherResponse, gotOtherResponse)
-	}
+	// Second test: request with POST (or any other method), should return (405)
+	t.Run("PostRequest", func(t *testing.T) {
+		gotResponse := serverHealthExec(http.MethodPost)
+		if gotResponse != http.StatusMethodNotAllowed {
+			t.Errorf("Other (POST) response is not 405 MethodNotAllowed")
+		}
+	})
 }
