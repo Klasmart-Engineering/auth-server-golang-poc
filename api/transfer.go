@@ -9,7 +9,6 @@ import (
 	"kidsloop-auth-server-2/env"
 	"kidsloop-auth-server-2/tokens"
 	"kidsloop-auth-server-2/utils"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -41,11 +40,6 @@ func TransferHandler(w http.ResponseWriter, r *http.Request) {
 			utils.ServerErrorResponse(statusCode, w, err)
 		}
 
-		if statusCode != http.StatusOK {
-			w.WriteHeader(statusCode)
-			return
-		}
-
 		http.SetCookie(w, accessCookie)
 		http.SetCookie(w, refreshCookie)
 		w.WriteHeader(statusCode)
@@ -69,18 +63,13 @@ func validateBearerToken(bearerTokenString string, keySet *jwk.Set) (*string, bo
 		return nil, false, err
 	}
 
-	if !providerToken.Valid {
-		return nil, false, nil
-	}
-
 	bearerClaims := providerToken.Claims.(jwt.MapClaims)
 	email, exists := bearerClaims["email"].(string)
 	if !exists {
-		return nil, true, errors.New("could not extract email from provider token")
+		return nil, providerToken.Valid, errors.New("could not extract email from provider token")
 	}
 
-	log.Printf("Provider Token is valid!")
-	return &email, true, nil
+	return &email, providerToken.Valid, nil
 }
 
 // transferExec - Internal function to issue a new access token and refresh token
